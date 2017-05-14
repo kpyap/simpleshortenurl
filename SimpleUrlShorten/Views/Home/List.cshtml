@@ -1,0 +1,62 @@
+﻿@model SimpleUrlShorten.Models.ViewModels.UrlsListViewModel
+@using SimpleUrlShorten.HtmlHelperExtensions;
+
+@{
+    ViewData["Title"] = "List";
+}
+
+<div class="row" style="padding-top: 30px;">
+    @using (Html.BeginForm())
+    {
+        <div class="input-group">
+            @Html.TextBox("Search", null, new { @class = "form-control", placeholder = "Search" })
+            <div class="input-group-btn">
+                <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row" style="padding-top: 30px;">
+@if (Model.Url.Count() > 0)
+{
+    <table class="table table-striped table-hover">
+        <tr>
+            <th>Original URL</th>
+            <th>Shorten URL</th>
+            <th>Generated Info</th>
+        </tr>
+        @foreach (var item in Model.Url)
+        {
+            <tr id="row-url-@item.UrlId">
+                <td>
+                    <a href="@item.OriginalUrl" target="_blank">
+                        @if (item.OriginalUrl.Length > 100)
+                        {
+                            @(item.OriginalUrl.Substring(0, 100) + "...");
+                        }
+                        else
+                        {
+                            @item.OriginalUrl;
+                        }
+                    </a>
+                </td>
+                <td>
+                    @Html.ActionLink(item.ShortUrl, "GoToOriginal", "Home", new { shortUrl = item.ShortUrl }, new { target = "_blank" })
+                </td>
+                <td>
+                    <span title="@Html.DisplayFor(modelItem => item.GeneratedDate)">@Html.RelativeTime(item.GeneratedDate)</span>
+                </td>
+            </tr>
+        }
+    </table>
+
+    <div page-model="@Model.PagingInfo" page-action="List" page-classes-enabled="true"
+         page-class="btn" page-class-normal="btn-default" page-class-selected="btn-primary"
+         page-url-search="@Model.CurrentSearch"
+         class="btn-group pull-right">
+    </div>
+}
+</div>
+
+
