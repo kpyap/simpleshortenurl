@@ -93,40 +93,53 @@ namespace SimpleUrlShorten.Controllers
 
                 // Check if original URL already exists in the database
                 Url existingURL = repository.Urls.Where(u => u.OriginalUrl.Equals(originalUrl, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                string urlPrefix = Request.Scheme + "://" + Request.Host + "/";
 
                 if (existingURL == null)
                 {
-                    Url newUrl = new Url()
+                    // Check if original URL is existing shorten URL
+                    Url processedURL = repository.Urls
+                                        .Where(u => (urlPrefix + u.ShortUrl).Equals(originalUrl, StringComparison.OrdinalIgnoreCase))
+                                        .FirstOrDefault();
+
+                    if (processedURL == null)
                     {
-                        OriginalUrl = originalUrl,
-                        GeneratedDate = DateTime.UtcNow
-                    };
+                        Url newUrl = new Url()
+                        {
+                            OriginalUrl = originalUrl,
+                            GeneratedDate = DateTime.UtcNow
+                        };
 
-                    string randomUrl = "";
+                        string randomUrl = "";
 
-                    do // make sure the random short URL does not exist in db 
-                    {
-                        randomUrl = UrlRepository.GenerateRandomShortUrl(appSettings.UrlLength);
-                    } while (repository.Urls.Where(u => u.ShortUrl.Equals(randomUrl, StringComparison.OrdinalIgnoreCase)).Count() > 0);
+                        do // make sure the random short URL does not exist in db 
+                        {
+                            randomUrl = UrlRepository.GenerateRandomShortUrl(appSettings.UrlLength);
+                        } while (repository.Urls.Where(u => u.ShortUrl.Equals(randomUrl, StringComparison.OrdinalIgnoreCase)).Count() > 0);
 
-                    newUrl.ShortUrl = randomUrl;
+                        newUrl.ShortUrl = randomUrl;
 
-                    try
-                    {
-                        repository.SaveUrl(newUrl);
-                        newUrl.ShortUrl = Request.Scheme + "://" + Request.Host + "/" + newUrl.ShortUrl;
+                        try
+                        {
+                            repository.SaveUrl(newUrl);
+                            newUrl.ShortUrl = urlPrefix + newUrl.ShortUrl;
 
-                        return Json(new { status = true, url = newUrl });
+                            return Json(new { status = true, url = newUrl });
+                        }
+                        catch (Exception exc)
+                        {
+                            return Json(new { status = false, message = exc.Message });
+                        }
                     }
-                    catch (Exception exc)
+                    else
                     {
-                        return Json(new { status = false, message = exc.Message });
+                        processedURL.ShortUrl = originalUrl;
+                        return Json(new { status = true, url = processedURL });
                     }
-                       
                 }
                 else
                 {
-                    existingURL.ShortUrl = Request.Scheme + "://" + Request.Host + "/" + existingURL.ShortUrl;
+                    existingURL.ShortUrl = urlPrefix + existingURL.ShortUrl;
                     return Json(new { status = true, url = existingURL });
                 }
             }
